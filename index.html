@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fútbol Total — El Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pitch:#0d2b1d;
+    --pitch-dark:#081c13;
+    --line:#e8e6de;
+    --gold:#c9a227;
+    --gold-bright:#e6c14d;
+    --red:#c1272d;
+    --green-ok:#3fa34d;
+    --panel:#123521;
+    --panel-light:#17422a;
+    --muted:#8fae9c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1a4a2e 0%, var(--pitch) 55%, var(--pitch-dark) 100%);
+    font-family:'Inter',sans-serif;
+    color:var(--line);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:28px 16px 60px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 90px);
+    pointer-events:none;
+  }
+  .wrap{
+    width:100%;
+    max-width:640px;
+    position:relative;
+    z-index:1;
+  }
+  /* ---------- Scoreboard header ---------- */
+  .scoreboard{
+    background:linear-gradient(180deg, #0a2818, #0d2119);
+    border:2px solid #1f5636;
+    border-radius:10px;
+    padding:16px 18px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.03);
+    margin-bottom:18px;
+  }
+  .scoreboard-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:'Oswald',sans-serif;
+  }
+  .brand{
+    font-size:13px;
+    letter-spacing:3px;
+    color:var(--gold);
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  .player-name{
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:1px;
+    margin-top:2px;
+  }
+  .score-value{
+    font-family:'Space Mono',monospace;
+    font-size:26px;
+    font-weight:700;
+    color:var(--gold-bright);
+    letter-spacing:1px;
+  }
+  .score-label{
+    font-size:10px;
+    letter-spacing:2px;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .level-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:12px;
+  }
+  .level-tag{
+    font-family:'Oswald',sans-serif;
+    font-size:22px;
+    font-weight:600;
+    letter-spacing:1px;
+  }
+  .level-tag span{color:var(--gold);}
+  .lights{
+    display:flex;
+    gap:5px;
+  }
+  .light{
+    width:14px;height:14px;border-radius:50%;
+    background:#0f2c1c;
+    border:1px solid #2a5c3c;
+    transition:all .25s ease;
+  }
+  .light.correct{background:var(--green-ok); box-shadow:0 0 8px rgba(63,163,77,0.9); border-color:var(--green-ok);}
+  .light.current{border-color:var(--gold-bright); box-shadow:0 0 0 2px rgba(230,193,77,0.25);}
+
+  /* ---------- Game card ---------- */
+  .card{
+    background:var(--panel);
+    border:1px solid #1f5636;
+    border-radius:12px;
+    padding:26px 24px 24px;
+    box-shadow:0 14px 40px rgba(0,0,0,0.4);
+    position:relative;
+  }
+  .topic{
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .qnum{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    color:var(--gold);
+    float:right;
+  }
+  .timer-wrap{
+    display:flex;
+    justify-content:center;
+    margin:6px 0 20px;
+  }
+  .timer-ring{
+    position:relative;
+    width:88px;
+    height:88px;
+  }
+  .timer-ring svg{transform:rotate(-90deg);}
+  .timer-ring circle{
+    fill:none;
+    stroke-width:7;
+  }
+  .timer-bg{stroke:#0e2b1c;}
+  .timer-fg{
+    stroke:var(--gold-bright);
+    stroke-linecap:round;
+    transition:stroke-dashoffset 1s linear, stroke .25s ease;
+  }
+  .timer-fg.danger{stroke:var(--red);}
+  .timer-num{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Mono',monospace;
+    font-size:26px;
+    font-weight:700;
+    color:var(--line);
+  }
+  .question{
+    font-family:'Oswald',sans-serif;
+    font-size:22px;
+    font-weight:500;
+    line-height:1.3;
+    margin:0 0 22px;
+    color:#fbfaf6;
+  }
+  .options{
+    display:grid;
+    gap:10px;
+  }
+  .opt{
+    background:var(--panel-light);
+    border:1px solid #256040;
+    color:var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:500;
+    text-align:left;
+    padding:13px 16px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:all .15s ease;
+    position:relative;
+  }
+  .opt:hover:not(:disabled){
+    border-color:var(--gold);
+    background:#1b4a2f;
+    transform:translateX(2px);
+  }
+  .opt:disabled{cursor:default;}
+  .opt.correct{background:rgba(63,163,77,0.25); border-color:var(--green-ok); color:#d7f5db;}
+  .opt.wrong{background:rgba(193,39,45,0.25); border-color:var(--red); color:#ffd9db;}
+  .opt-letter{
+    display:inline-block;
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    color:var(--gold);
+    margin-right:10px;
+  }
+  .feedback{
+    margin-top:16px;
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    min-height:20px;
+  }
+  .feedback.ok{color:var(--green-ok);}
+  .feedback.bad{color:var(--red);}
+  .feedback.time{color:var(--muted);}
+
+  /* ---------- Start / End / Login screens ---------- */
+  .center-card{
+    background:var(--panel);
+    border:1px solid #1f5636;
+    border-radius:12px;
+    padding:32px 28px;
+    text-align:center;
+    box-shadow:0 14px 40px rgba(0,0,0,0.4);
+  }
+  .center-card h1{
+    font-family:'Oswald',sans-serif;
+    font-size:32px;
+    margin:0 0 6px;
+    color:#fbfaf6;
+  }
+  .center-card h1 span{color:var(--gold);}
+  .subtitle{
+    color:var(--muted);
+    font-size:14px;
+    margin-bottom:22px;
+  }
+  .rules{
+    text-align:left;
+    background:var(--panel-light);
+    border:1px solid #256040;
+    border-radius:8px;
+    padding:16px 18px;
+    font-size:14px;
+    line-height:1.7;
+    margin-bottom:22px;
+  }
+  .rules b{color:var(--gold-bright);}
+  .name-input{
+    width:100%;
+    font-family:'Oswald',sans-serif;
+    font-size:18px;
+    letter-spacing:1px;
+    text-align:center;
+    background:var(--panel-light);
+    border:1px solid #256040;
+    color:var(--line);
+    padding:14px 16px;
+    border-radius:8px;
+    margin-bottom:18px;
+    outline:none;
+  }
+  .name-input:focus{border-color:var(--gold);}
+  .name-input::placeholder{color:var(--muted);}
+  .points-table, .board-table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'Space Mono',monospace;
+    font-size:12.5px;
+    margin-bottom:6px;
+  }
+  .points-table th, .points-table td,
+  .board-table th, .board-table td{
+    padding:7px 8px;
+    text-align:center;
+    border-bottom:1px solid #1f5636;
+  }
+  .board-table td:nth-child(2){text-align:left;}
+  .points-table th, .board-table th{
+    color:var(--gold);
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  .points-table tr.you, .board-table tr.you{background:rgba(201,162,39,0.14);}
+  .btn{
+    font-family:'Oswald',sans-serif;
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    background:var(--gold);
+    color:#132b1c;
+    border:none;
+    padding:14px 28px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:all .15s ease;
+    box-shadow:0 6px 18px rgba(201,162,39,0.25);
+  }
+  .btn:hover{background:var(--gold-bright); transform:translateY(-1px);}
+  .btn.secondary{
+    background:transparent;
+    border:1px solid #2a5c3c;
+    color:var(--line);
+    box-shadow:none;
+    margin-left:10px;
+  }
+  .btn.secondary:hover{border-color:var(--gold); background:var(--panel-light);}
+  .final-score{
+    font-family:'Space Mono',monospace;
+    font-size:42px;
+    font-weight:700;
+    color:var(--gold-bright);
+    margin:8px 0 4px;
+  }
+  .final-label{
+    color:var(--muted);
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin-bottom:18px;
+  }
+  .board-note{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:10px;
+  }
+  .section-title{
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:26px 0 12px;
+    text-align:left;
+  }
+  .hidden{display:none !important;}
+
+  /* ---------- Level-up celebration ---------- */
+  #celebration{
+    position:fixed;
+    inset:0;
+    background:rgba(6,20,13,0.92);
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .celebration-content{
+    text-align:center;
+    position:relative;
+    z-index:2;
+    animation:pop-in .5s cubic-bezier(.2,1.6,.4,1);
+  }
+  .trophy{
+    font-size:64px;
+    filter:drop-shadow(0 0 20px rgba(230,193,77,0.6));
+    animation:bounce 1s ease-in-out infinite;
+  }
+  .celebration-title{
+    font-family:'Oswald',sans-serif;
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:2px;
+    color:var(--gold-bright);
+    margin-top:10px;
+  }
+  .celebration-sub{
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--line);
+    margin-top:8px;
+  }
+  @keyframes pop-in{
+    0%{transform:scale(0.5); opacity:0;}
+    100%{transform:scale(1); opacity:1;}
+  }
+  @keyframes bounce{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-14px);}
+  }
+  .confetti{
+    position:absolute;
+    top:-20px;
+    width:9px;height:16px;
+    opacity:0.9;
+    animation:fall linear forwards;
+    z-index:1;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(540deg); opacity:0.2; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .opt, .timer-fg{transition:none;}
+    .trophy{animation:none;}
+    .confetti{animation:none; display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LOGIN / START SCREEN -->
+  <div id="start-screen" class="center-card">
+    <h1>Fútbol <span>Total</span></h1>
+    <div class="subtitle">10 niveles. 10 preguntas por nivel. 10 segundos por pregunta.</div>
+
+    <input id="name-input" class="name-input" type="text" maxlength="18" placeholder="Ingresá tu nombre para jugar">
+
+    <div class="rules">
+      <div><b>Cómo se juega:</b> respondé antes de que se acabe el reloj.</div>
+      <div>Si te equivocás o se agota el tiempo, termina tu partida.</div>
+      <div>Si contestás <b>las 10 preguntas del nivel</b> correctamente, avanzás al siguiente nivel — más difícil, con festejo incluido.</div>
+      <div>Cada respuesta correcta suma puntos según el nivel: <b>100 pts × nivel</b>.</div>
+      <div>Tus puntos quedan guardados en la <b>tabla histórica</b> del juego, junto a los de todos los que jugaron.</div>
+    </div>
+
+    <button class="btn" onclick="startGame()">Empezar a jugar</button>
+    <button class="btn secondary" onclick="showLeaderboardStandalone()">Ver tabla de posiciones</button>
+
+    <div class="section-title hidden" id="board-title-start">Tabla histórica</div>
+    <table class="board-table hidden" id="board-table-start"></table>
+    <div class="board-note" id="board-note-start"></div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="hidden">
+    <div class="scoreboard">
+      <div class="scoreboard-top">
+        <div>
+          <div class="brand">Fútbol Total</div>
+          <div class="player-name" id="player-name-tag"></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="score-value" id="score-value">0</div>
+          <div class="score-label">Puntos</div>
+        </div>
+      </div>
+      <div class="level-row">
+        <div class="level-tag">NIVEL <span id="level-num">1</span>/10</div>
+        <div class="lights" id="lights"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="topic" id="topic-label">Tema</div>
+      <div class="qnum" id="q-counter">1/10</div>
+      <div style="clear:both;"></div>
+      <div class="timer-wrap">
+        <div class="timer-ring">
+          <svg width="88" height="88">
+            <circle class="timer-bg" cx="44" cy="44" r="38"></circle>
+            <circle class="timer-fg" id="timer-fg" cx="44" cy="44" r="38"></circle>
+          </svg>
+          <div class="timer-num" id="timer-num">10</div>
+        </div>
+      </div>
+      <div class="question" id="question-text">Cargando pregunta...</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="end-screen" class="center-card hidden">
+    <h1 id="end-title">Fin del <span>Partido</span></h1>
+    <div class="final-score" id="final-score">0</div>
+    <div class="final-label">Puntos totales</div>
+    <div id="end-message" class="subtitle" style="margin-bottom:6px;"></div>
+
+    <div class="section-title">Tabla histórica</div>
+    <table class="board-table" id="board-table-end"></table>
+    <div class="board-note" id="board-note-end"></div>
+
+    <div style="margin-top:20px;">
+      <button class="btn" onclick="startGame(true)">Jugar de nuevo</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- LEVEL-UP CELEBRATION -->
+<div id="celebration" class="hidden">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <div class="celebration-content">
+    <div class="trophy">🏆</div>
+    <div class="celebration-title">¡NIVEL <span id="cel-level-num"></span> SUPERADO!</div>
+    <div class="celebration-sub">Avanzando al nivel <span id="cel-next-level"></span>...</div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CONFIGURACIÓN DE TABLA HISTÓRICA COMPARTIDA (Firebase Realtime Database)
+   =========================================================================
+   Este juego, al ser un archivo estático (GitHub Pages), no tiene backend
+   propio. Para que la tabla de posiciones sea la MISMA para todos los que
+   jueguen (no solo en tu navegador), necesitás un proyecto de Firebase
+   gratuito con Realtime Database:
+
+   1. Andá a https://console.firebase.google.com y creá un proyecto.
+   2. Activá "Realtime Database" (modo de prueba está bien para arrancar).
+   3. Copiá la URL de tu base (algo como https://tu-proyecto-default-rtdb.firebaseio.com)
+      y pegala abajo, reemplazando el valor de FIREBASE_DB_URL.
+   4. En las reglas de la base, para el nodo "leaderboard" permití lectura
+      y escritura pública (o con las reglas que prefieras).
+
+   Si no configurás esto, el juego funciona igual, pero la tabla queda
+   guardada solo en tu propio navegador (localStorage), no la ven otros
+   jugadores.
+   ========================================================================= */
+const FIREBASE_DB_URL = "https://quizfutbol-73858-default-rtdb.firebaseio.com";
+
+const usingSharedBoard = FIREBASE_DB_URL && FIREBASE_DB_URL.trim().length > 0;
+
+/* ============ SONIDO (Web Audio API, sin archivos externos) ============ */
+let audioCtx = null;
+function playTone(freq, duration, type){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.16, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }catch(e){ /* audio no disponible, seguimos sin sonido */ }
+}
+function sfxClick(){ playTone(520, 0.07, 'square'); }
+function sfxCorrect(){ playTone(660, 0.09, 'sine'); setTimeout(()=>playTone(880,0.14,'sine'), 90); }
+function sfxWrong(){ playTone(180, 0.28, 'sawtooth'); }
+function sfxLevelUp(){
+  [523,659,784,1047].forEach((f,i)=> setTimeout(()=>playTone(f,0.18,'sine'), i*110));
+}
+
+/* ============ BANCO DE PREGUNTAS: 10 niveles x 10 posiciones x 2 variantes ============
+   Cada posición ("slot") tiene 2 variantes para que las partidas no se repitan
+   siempre igual. El motor evita mostrar dos veces seguidas la misma variante
+   en la misma posición (ver getSlotQuestion). Todas las preguntas son de
+   fútbol masculino profesional (selecciones y clubes), sin categorías menores. */
+const QUESTION_BANK = [
+// NIVEL 1 — Lo básico
+{topic:"Mundiales", slots:[
+ [ {q:"¿Qué selección ganó el Mundial de Qatar 2022?", o:["Francia","Brasil","Argentina","Croacia"], a:2},
+   {q:"¿Cuántas veces fue campeón del mundo Alemania (hasta 2022)?", o:["3","4","5","2"], a:1} ],
+ [ {q:"¿Cuántos equipos participaron en el Mundial de Qatar 2022?", o:["24","32","48","16"], a:1},
+   {q:"¿Cada cuántos años se disputa el Mundial de fútbol?", o:["2","3","4","5"], a:2} ],
+ [ {q:"¿En qué país se jugó el Mundial de 2018?", o:["Rusia","Brasil","Alemania","Sudáfrica"], a:0},
+   {q:"¿En qué país se jugó el Mundial de 1994?", o:["Brasil","Estados Unidos","Italia","México"], a:1} ],
+ [ {q:"¿Cuántos minutos dura un partido de fútbol en tiempo reglamentario?", o:["80","90","100","120"], a:1},
+   {q:"¿Cuántos jugadores integra un equipo de fútbol dentro de la cancha?", o:["10","11","12","9"], a:1} ],
+ [ {q:"¿Qué jugador ganó la Bota de Oro (máximo goleador) en Qatar 2022?", o:["Lionel Messi","Kylian Mbappé","Olivier Giroud","Julián Álvarez"], a:1},
+   {q:"¿Quién ganó la Bota de Oro en el Mundial de Rusia 2018?", o:["Harry Kane","Cristiano Ronaldo","Romelu Lukaku","Antoine Griezmann"], a:0} ],
+ [ {q:"¿Quién fue el capitán de Argentina en el Mundial 2022?", o:["Ángel Di María","Lionel Messi","Emiliano Martínez","Rodrigo De Paul"], a:1},
+   {q:"¿Quién fue el capitán de Francia en la final del Mundial 2022?", o:["Kylian Mbappé","Antoine Griezmann","Hugo Lloris","Olivier Giroud"], a:2} ],
+ [ {q:"¿Qué selección ha ganado más Mundiales en la historia?", o:["Alemania","Argentina","Italia","Brasil"], a:3},
+   {q:"¿Cuántos Mundiales ha ganado Brasil en total?", o:["3","4","5","6"], a:2} ],
+ [ {q:"¿Quién ganó el Balón de Oro en 2023?", o:["Kylian Mbappé","Erling Haaland","Lionel Messi","Cristiano Ronaldo"], a:2},
+   {q:"¿Cuántos Balones de Oro tiene Cristiano Ronaldo?", o:["4","5","6","3"], a:1} ],
+ [ {q:"El Mundial 2026 se jugó en:", o:["Qatar","Estados Unidos, México y Canadá","Marruecos","España y Portugal"], a:1},
+   {q:"¿Cuántas selecciones jugaron el Mundial 2026, el primero con este formato ampliado?", o:["32","40","48","64"], a:2} ],
+ [ {q:"¿Cuántos Mundiales ha ganado Argentina en total (hasta 2026)?", o:["2","3","4","1"], a:1},
+   {q:"¿En qué Mundial ganó Argentina su tercer título?", o:["2014","2018","2022","2026"], a:2} ],
+]},
+// NIVEL 2 — Selecciones y clubes
+{topic:"Selecciones y clubes", slots:[
+ [ {q:"¿Cuál es el club con más títulos de la Champions League / Copa de Europa?", o:["AC Milan","Bayern Múnich","Real Madrid","Liverpool"], a:2},
+   {q:"¿Qué club ha disputado más finales de Champions League / Copa de Europa en la historia?", o:["Bayern Múnich","Real Madrid","AC Milan","Juventus"], a:1} ],
+ [ {q:"¿Qué selección venció a Argentina en su debut del Mundial 2022?", o:["México","Arabia Saudita","Polonia","Australia"], a:1},
+   {q:"¿A qué selección venció Argentina en la final del Mundial 2022?", o:["Croacia","Países Bajos","Francia","Marruecos"], a:2} ],
+ [ {q:"¿Qué club ganó la Champions League 2022-23?", o:["Real Madrid","Manchester City","Inter de Milán","Bayern Múnich"], a:1},
+   {q:"¿Qué club ganó la Champions League 2024-25?", o:["Real Madrid","Manchester City","Paris Saint-Germain","Inter de Milán"], a:2} ],
+ [ {q:"¿Quién es el máximo goleador histórico de los Mundiales de fútbol?", o:["Lionel Messi","Kylian Mbappé","Miroslav Klose","Pelé"], a:1},
+   {q:"¿Cuántos goles anotó Kylian Mbappé en el Mundial 2026?", o:["6","8","10","12"], a:2} ],
+ [ {q:"¿En qué país se jugó el Mundial 2014?", o:["Brasil","Argentina","Chile","Colombia"], a:0},
+   {q:"¿Qué selección ganó el Mundial de 2014, disputado en Brasil?", o:["Argentina","Alemania","Países Bajos","España"], a:1} ],
+ [ {q:"¿Qué selección ganó el Mundial de Sudáfrica 2010?", o:["Holanda","España","Alemania","Uruguay"], a:1},
+   {q:"¿A qué selección venció España en la final del Mundial 2010?", o:["Alemania","Países Bajos","Uruguay","Brasil"], a:1} ],
+ [ {q:"¿A qué jugador se lo conoce por el apodo 'CR7'?", o:["Cristiano Ronaldo","Carlos Ramírez","Casemiro","Coutinho"], a:0},
+   {q:"¿De qué país es Cristiano Ronaldo?", o:["España","Portugal","Italia","Brasil"], a:1} ],
+ [ {q:"¿Qué club argentino tiene más Copas Libertadores?", o:["River Plate","Boca Juniors","Racing Club","Independiente"], a:3},
+   {q:"¿Cuántas Copas Libertadores ha ganado Boca Juniors?", o:["4","5","6","7"], a:2} ],
+ [ {q:"¿Quién ganó el Balón de Oro en 2022?", o:["Karim Benzema","Kevin De Bruyne","Robert Lewandowski","Kylian Mbappé"], a:0},
+   {q:"¿En qué club jugaba Karim Benzema cuando ganó el Balón de Oro 2022?", o:["Al-Ittihad","Real Madrid","Olympique de Lyon","Juventus"], a:1} ],
+ [ {q:"¿Cómo se definió la final del Mundial 2022 entre Argentina y Francia?", o:["Gol de oro","Por penales tras el empate","Por diferencia de córners","Se repitió el partido"], a:1},
+   {q:"¿A qué arquero argentino se le atribuye una atajada clave en la última jugada del alargue de la final 2022?", o:["Franco Armani","Emiliano 'Dibu' Martínez","Gerónimo Rulli","Agustín Marchesín"], a:1} ],
+]},
+// NIVEL 3 — Clubes del mundo
+{topic:"Clubes del mundo", slots:[
+ [ {q:"¿En qué ciudad juega el AC Milan?", o:["Roma","Turín","Milán","Nápoles"], a:2},
+   {q:"¿De qué ciudad italiana es el Inter de Milán?", o:["Turín","Milán","Roma","Génova"], a:1} ],
+ [ {q:"¿Cuál es el estadio del Real Madrid?", o:["Camp Nou","Santiago Bernabéu","Mestalla","Wanda Metropolitano"], a:1},
+   {q:"¿Cómo se llama el estadio del FC Barcelona?", o:["Camp Nou","Metropolitano","Bernabéu","Riazor"], a:0} ],
+ [ {q:"¿Qué club alemán domina históricamente la Bundesliga?", o:["Borussia Dortmund","Bayern Múnich","Schalke 04","RB Leipzig"], a:1},
+   {q:"¿Cuántas Bundesligas seguidas ganó el Bayern Múnich entre 2013 y 2023?", o:["8","9","10","11"], a:3} ],
+ [ {q:"¿Qué club ganó la primera Copa de Europa (1955-56)?", o:["Benfica","Real Madrid","Milan","Barcelona"], a:1},
+   {q:"¿Cuántas Copas de Europa / Champions League tiene el Real Madrid en total?", o:["13","14","15","16"], a:2} ],
+ [ {q:"¿Cuál es el clásico rival de Boca Juniors?", o:["Racing Club","San Lorenzo","River Plate","Vélez"], a:2},
+   {q:"¿Cómo se llama el clásico entre Boca Juniors y River Plate?", o:["El Súperclásico","El Clásico del Río","El Derbi Porteño","El Clásico Mayor"], a:0} ],
+ [ {q:"¿Cómo se apoda al Liverpool FC?", o:["Los Reds","Los Blues","Los Gunners","Los Toffees"], a:0},
+   {q:"¿En qué ciudad inglesa juega el Liverpool FC?", o:["Manchester","Liverpool","Londres","Birmingham"], a:1} ],
+ [ {q:"¿En qué club jugó Pelé la mayor parte de su carrera?", o:["Flamengo","Santos","Corinthians","Vasco da Gama"], a:1},
+   {q:"¿En qué país juega el club Santos, donde brilló Pelé?", o:["Argentina","Uruguay","Brasil","Chile"], a:2} ],
+ [ {q:"¿A qué club se lo apoda 'la Vecchia Signora' (la Vieja Señora)?", o:["Inter de Milán","AS Roma","Juventus","Napoli"], a:2},
+   {q:"¿De qué ciudad italiana es la Juventus?", o:["Turín","Milán","Roma","Nápoles"], a:0} ],
+ [ {q:"¿De qué país es el club Ajax?", o:["Bélgica","Países Bajos","Alemania","Dinamarca"], a:1},
+   {q:"¿En qué ciudad de Países Bajos juega el Ajax?", o:["Róterdam","Ámsterdam","La Haya","Utrecht"], a:1} ],
+ [ {q:"¿En qué barrio de Buenos Aires nació Boca Juniors?", o:["Palermo","La Boca","Belgrano","Flores"], a:1},
+   {q:"¿Cómo se llama el estadio de Boca Juniors?", o:["El Cilindro","La Bombonera","El Monumental","El Coloso"], a:1} ],
+]},
+// NIVEL 4 — Jugadores de la actualidad
+{topic:"Jugadores de la actualidad", slots:[
+ [ {q:"¿En qué club jugaba Kylian Mbappé durante el Mundial de Qatar 2022?", o:["Real Madrid","Paris Saint-Germain","Mónaco","Liverpool"], a:1},
+   {q:"¿A qué club se sumó Kylian Mbappé en 2024?", o:["Manchester City","Real Madrid","Chelsea","Barcelona"], a:1} ],
+ [ {q:"¿De qué país es el delantero Erling Haaland?", o:["Suecia","Dinamarca","Noruega","Islandia"], a:2},
+   {q:"¿En qué club juega Erling Haaland?", o:["Real Madrid","Manchester City","Bayern Múnich","PSG"], a:1} ],
+ [ {q:"¿De qué país es el futbolista Vinícius Júnior?", o:["Portugal","Brasil","Uruguay","Colombia"], a:1},
+   {q:"¿Con qué número de camiseta juega Vinícius Júnior en el Real Madrid?", o:["7","9","11","20"], a:0} ],
+ [ {q:"¿En qué club juega Vinícius Júnior desde 2018?", o:["Barcelona","Real Madrid","Atlético de Madrid","Sevilla"], a:1},
+   {q:"¿En qué posición juega habitualmente Vinícius Júnior?", o:["Arquero","Defensor central","Extremo izquierdo","Volante central"], a:2} ],
+ [ {q:"¿Quién ganó el Balón de Oro en 2021?", o:["Robert Lewandowski","Jorginho","Lionel Messi","N'Golo Kanté"], a:2},
+   {q:"¿En qué club jugaba Messi cuando ganó el Balón de Oro 2021?", o:["FC Barcelona","Paris Saint-Germain","Inter Miami","Al-Hilal"], a:1} ],
+ [ {q:"¿Quién fue el capitán de Francia en el Mundial 2022?", o:["Kylian Mbappé","Hugo Lloris","Antoine Griezmann","Olivier Giroud"], a:1},
+   {q:"¿Quién es el capitán de la selección de Francia desde 2023?", o:["Antoine Griezmann","Kylian Mbappé","Aurélien Tchouaméni","N'Golo Kanté"], a:1} ],
+ [ {q:"¿De qué selección es capitán histórico Luka Modrić?", o:["Serbia","Croacia","Eslovenia","Bosnia"], a:1},
+   {q:"¿Cuántos Mundiales había disputado Luka Modrić con Croacia hasta 2022 (inclusive)?", o:["2","3","4","5"], a:2} ],
+ [ {q:"¿Quién ganó el Balón de Oro en 2024, dejando afuera al favorito Vinícius Júnior?", o:["Erling Haaland","Jude Bellingham","Rodri","Kylian Mbappé"], a:2},
+   {q:"¿En qué club juega Rodri, ganador del Balón de Oro 2024?", o:["Real Madrid","Manchester City","Bayern Múnich","Liverpool"], a:1} ],
+ [ {q:"¿En qué club jugó Robert Lewandowski a partir de la temporada 2022-23?", o:["Bayern Múnich","FC Barcelona","PSG","Chelsea"], a:1},
+   {q:"¿De qué país es Robert Lewandowski?", o:["República Checa","Polonia","Eslovaquia","Croacia"], a:1} ],
+ [ {q:"¿Cuántos goles convirtió Lionel Messi en el Mundial de Qatar 2022?", o:["5","6","7","8"], a:2},
+   {q:"¿Cuántos goles anotó Messi en el partido de la final de Qatar 2022 (sin contar la tanda de penales)?", o:["1","2","3","4"], a:1} ],
+]},
+// NIVEL 5 — Historia de los Mundiales
+{topic:"Historia de los Mundiales", slots:[
+ [ {q:"¿Dónde se jugó el primer Mundial de fútbol de la historia (1930)?", o:["Italia","Uruguay","Brasil","Francia"], a:1},
+   {q:"¿En qué año se jugó el primer Mundial de fútbol de la historia?", o:["1926","1930","1934","1938"], a:1} ],
+ [ {q:"¿Qué selección ganó el primer Mundial de 1930?", o:["Argentina","Uruguay","Brasil","Estados Unidos"], a:1},
+   {q:"¿Cuántas selecciones participaron en el primer Mundial de 1930?", o:["8","13","16","24"], a:1} ],
+ [ {q:"¿En qué Mundial ganó Argentina su primer título?", o:["1978","1982","1986","1974"], a:0},
+   {q:"¿Qué selección fue rival de Argentina en la final del Mundial de 1978?", o:["Brasil","Países Bajos","Alemania","Italia"], a:1} ],
+ [ {q:"¿Quién hizo 13 goles en un solo Mundial (récord histórico de un torneo, 1958)?", o:["Pelé","Just Fontaine","Eusébio","Gerd Müller"], a:1},
+   {q:"¿En qué Mundial jugó Just Fontaine, autor del récord de goles en un solo torneo?", o:["Suiza 1954","Suecia 1958","Chile 1962","Inglaterra 1966"], a:1} ],
+ [ {q:"¿En qué país se jugó el Mundial de 1986, el de Maradona?", o:["España","México","Argentina","Italia"], a:1},
+   {q:"¿Qué selección fue rival de Argentina en la final del Mundial de 1986?", o:["Brasil","Alemania Occidental","Italia","Francia"], a:1} ],
+ [ {q:"El 'gol del siglo' y la 'mano de Dios' fueron obra de:", o:["Diego Maradona","Pelé","Zico","Mario Kempes"], a:0},
+   {q:"¿En qué Mundial ocurrió la 'mano de Dios' de Maradona?", o:["España 1982","México 1986","Italia 1990","Estados Unidos 1994"], a:1} ],
+ [ {q:"¿Qué selección ganó el Mundial de Francia 1998?", o:["Brasil","Francia","Alemania","Holanda"], a:1},
+   {q:"¿A qué selección venció Francia en la final del Mundial de 1998?", o:["Brasil","Italia","Croacia","Argentina"], a:0} ],
+ [ {q:"¿Qué dos países organizaron juntos el Mundial 2002?", o:["China y Japón","Corea del Sur y Japón","Japón y Australia","Tailandia y Corea"], a:1},
+   {q:"¿Qué selección ganó el Mundial de 2002, disputado en Corea del Sur y Japón?", o:["Alemania","Brasil","Francia","Turquía"], a:1} ],
+ [ {q:"¿Qué selección ganó el Mundial de 1966 jugando de local?", o:["Alemania","Inglaterra","Portugal","Francia"], a:1},
+   {q:"¿A qué selección venció Inglaterra en la final del Mundial de 1966?", o:["Alemania Occidental","Portugal","Unión Soviética","Hungría"], a:0} ],
+ [ {q:"¿Qué selección es la única en ganar 5 Mundiales?", o:["Alemania","Italia","Argentina","Brasil"], a:3},
+   {q:"¿En qué Mundial ganó Brasil su quinto título?", o:["1994","1998","2002","2006"], a:2} ],
+]},
+// NIVEL 6 — Leyendas del fútbol
+{topic:"Leyendas del fútbol", slots:[
+ [ {q:"¿A quién se conoce como 'El Pibe de Oro'?", o:["Gabriel Batistuta","Diego Maradona","Mario Kempes","Fernando Redondo"], a:1},
+   {q:"¿De qué selección fue capitán Diego Maradona en el Mundial de 1986?", o:["Uruguay","Argentina","Brasil","Chile"], a:1} ],
+ [ {q:"¿Quién es el máximo goleador histórico del Real Madrid?", o:["Raúl González","Cristiano Ronaldo","Alfredo Di Stéfano","Karim Benzema"], a:1},
+   {q:"¿Con qué club ganó Cristiano Ronaldo su primera Champions League, en 2008?", o:["Real Madrid","Manchester United","Juventus","Sporting Lisboa"], a:1} ],
+ [ {q:"¿Qué jugador brasileño ganó 3 Mundiales como jugador (1958, 1962 y 1970)?", o:["Zico","Romário","Pelé","Ronaldinho"], a:2},
+   {q:"¿Cuántos goles anotó Pelé a lo largo de sus Mundiales disputados?", o:["10","12","14","16"], a:1} ],
+ [ {q:"Al delantero alemán Gerd Müller se lo apodaba:", o:["Der Bomber","Der Kaiser","Der Panzer","Der Adler"], a:0},
+   {q:"¿De qué selección fue delantero histórico Gerd Müller?", o:["Austria","Suiza","Alemania Occidental","Países Bajos"], a:2} ],
+ [ {q:"¿Quién capitaneó a Italia en el título del Mundial 2006?", o:["Andrea Pirlo","Fabio Cannavaro","Gianluigi Buffon","Francesco Totti"], a:1},
+   {q:"¿En qué posición jugaba Fabio Cannavaro, capitán de Italia campeón 2006?", o:["Delantero","Volante","Defensor central","Arquero"], a:2} ],
+ [ {q:"¿Qué jugador holandés popularizó el amague conocido como 'Cruyff Turn'?", o:["Johan Cruyff","Marco van Basten","Dennis Bergkamp","Ruud Gullit"], a:0},
+   {q:"¿De qué selección fue figura Johan Cruyff en la final del Mundial de 1974?", o:["Bélgica","Países Bajos","Alemania Occidental","Dinamarca"], a:1} ],
+ [ {q:"¿Quién fue el arquero campeón del Mundial 2014 con Alemania?", o:["Oliver Kahn","Manuel Neuer","Jens Lehmann","Marc-André ter Stegen"], a:1},
+   {q:"¿En qué club jugó toda su carrera el arquero alemán Manuel Neuer?", o:["Borussia Dortmund","Bayern Múnich","Schalke 04 y Bayern Múnich","RB Leipzig"], a:2} ],
+ [ {q:"¿Qué jugador francés lideró la gran selección de los años 80, ganador de 3 Balones de Oro seguidos?", o:["Michel Platini","Zinedine Zidane","Jean-Pierre Papin","Eric Cantona"], a:0},
+   {q:"¿De qué selección fue capitán y estrella Michel Platini en los años 80?", o:["Bélgica","Francia","Italia","España"], a:1} ],
+ [ {q:"Al delantero italiano Roberto Baggio se lo conocía como:", o:["Il Divin Codino","Il Fenomeno","Il Capitano","Il Principe"], a:0},
+   {q:"¿En qué Mundial Roberto Baggio falló el penal decisivo en la final?", o:["Italia 1990","Estados Unidos 1994","Francia 1998","Corea-Japón 2002"], a:1} ],
+ [ {q:"¿Qué jugador inglés ganó el primer Balón de Oro de la historia en 1956?", o:["Bobby Charlton","Stanley Matthews","Gordon Banks","Tom Finney"], a:1},
+   {q:"¿De qué país era Stanley Matthews, primer ganador del Balón de Oro?", o:["Escocia","Gales","Inglaterra","Irlanda"], a:2} ],
+]},
+// NIVEL 7 — Premios individuales
+{topic:"Premios individuales", slots:[
+ [ {q:"¿En qué año se entregó por primera vez el Balón de Oro?", o:["1950","1956","1962","1970"], a:1},
+   {q:"¿Con qué frecuencia se entrega el Balón de Oro?", o:["Cada 2 años","Cada 4 años","Anualmente","Cada 6 años"], a:2} ],
+ [ {q:"¿Jugador con más Balones de Oro en la historia?", o:["Cristiano Ronaldo","Michel Platini","Lionel Messi","Johan Cruyff"], a:2},
+   {q:"¿Cuántos Balones de Oro tiene en total Lionel Messi?", o:["6","7","8","9"], a:2} ],
+ [ {q:"¿Quién es el segundo jugador con más Balones de Oro?", o:["Cristiano Ronaldo","Ronaldinho","Franz Beckenbauer","Marco van Basten"], a:0},
+   {q:"¿Cuántos de sus Balones de Oro ganó Cristiano Ronaldo jugando en el Real Madrid?", o:["3","4","5","2"], a:1} ],
+ [ {q:"¿Qué reconoce el Premio Puskás cada año?", o:["Al mejor arquero","Al gol más bello del año","Al mejor entrenador","Al máximo goleador"], a:1},
+   {q:"¿Qué organización entrega el Premio Puskás?", o:["France Football","La UEFA","La FIFA","La AFA"], a:2} ],
+ [ {q:"¿Quién ganó el primer Premio Puskás en 2009?", o:["Lionel Messi","Cristiano Ronaldo","Wayne Rooney","Neymar"], a:1},
+   {q:"¿Con qué club jugaba Cristiano Ronaldo cuando ganó el primer Premio Puskás (2009)?", o:["Real Madrid","Manchester United","Sporting Lisboa","Juventus"], a:1} ],
+ [ {q:"¿Qué revista creó y entrega el Balón de Oro?", o:["World Soccer","France Football","FourFourTwo","Kicker"], a:1},
+   {q:"¿Con qué organismo se asoció France Football para entregar el 'FIFA Balón de Oro' entre 2010 y 2015?", o:["La UEFA","La FIFA","La CONMEBOL","La AFC"], a:1} ],
+ [ {q:"El Trofeo Yashin, entregado desde 2019, premia a:", o:["El mejor lateral","El mejor arquero del año","El mejor juvenil","El mejor volante"], a:1},
+   {q:"¿En honor a qué arquero soviético se llama el Trofeo Yashin?", o:["Rinat Dasáyev","Lev Yashin","Viktor Chanov","Nikolái Ózerov"], a:1} ],
+ [ {q:"¿Cuántos Balones de Oro consecutivos ganó Lionel Messi entre 2009 y 2012?", o:["2","3","4","5"], a:2},
+   {q:"¿En qué club jugaba Messi cuando ganó sus primeros 4 Balones de Oro consecutivos?", o:["Paris Saint-Germain","FC Barcelona","Inter Miami","Newell's Old Boys"], a:1} ],
+ [ {q:"¿Cómo se llama el premio de France Football al mejor futbolista Sub-21 del año?", o:["Trofeo Kopa","Trofeo Yashin","Premio Puskás","Trofeo Di Stéfano"], a:0},
+   {q:"¿En homenaje a qué exjugador francés se llama el Trofeo Kopa?", o:["Just Fontaine","Raymond Kopa","Michel Platini","Zinedine Zidane"], a:1} ],
+ [ {q:"El 'Guante de Oro' del Mundial se entrega a:", o:["El goleador del torneo","El mejor arquero del torneo","El jugador más joven","El mejor defensor"], a:1},
+   {q:"¿Quién ganó el Guante de Oro del Mundial de Qatar 2022?", o:["Yassine Bounou","Emiliano 'Dibu' Martínez","Hugo Lloris","Wojciech Szczęsny"], a:1} ],
+]},
+// NIVEL 8 — Historia de los clubes
+{topic:"Historia de los clubes", slots:[
+ [ {q:"¿Qué club ganó 3 Champions League consecutivas entre 2016 y 2018?", o:["Barcelona","Bayern Múnich","Real Madrid","Liverpool"], a:2},
+   {q:"¿Qué entrenador dirigió al Real Madrid en su racha de 3 Champions seguidas (2016-2018)?", o:["José Mourinho","Zinedine Zidane","Carlo Ancelotti","Rafael Benítez"], a:1} ],
+ [ {q:"¿Qué club inglés ganó el histórico 'triplete' en 1999 (liga, copa y Champions)?", o:["Arsenal","Manchester United","Chelsea","Liverpool"], a:1},
+   {q:"¿Qué entrenador llevó al Manchester United a ganar el triplete de 1999?", o:["Arsène Wenger","Alex Ferguson","Kenny Dalglish","Bobby Robson"], a:1} ],
+ [ {q:"¿Qué club ganó el triplete (liga, copa y Champions) en 2009 y en 2015?", o:["Real Madrid","Bayern Múnich","Barcelona","Manchester City"], a:2},
+   {q:"¿Qué entrenador dirigió al Barcelona en el triplete de 2009?", o:["Pep Guardiola","Frank Rijkaard","Luis Enrique","Tito Vilanova"], a:0} ],
+ [ {q:"Al club River Plate se lo apoda históricamente:", o:["Los Millonarios","Los Xeneizes","Los Académicos","Los Diablos Rojos"], a:0},
+   {q:"¿Cómo se llama el estadio de River Plate?", o:["La Bombonera","El Monumental","El Cilindro","El Coloso"], a:1} ],
+ [ {q:"Peñarol y Nacional son los dos grandes clubes de:", o:["Paraguay","Uruguay","Bolivia","Chile"], a:1},
+   {q:"¿Cómo se conoce al clásico entre Peñarol y Nacional?", o:["El Clásico uruguayo","El Superclásico","El Derbi Charrúa","El Clásico del Río"], a:0} ],
+ [ {q:"¿En qué ciudad brasileña tiene su sede el club Flamengo?", o:["San Pablo","Belo Horizonte","Río de Janeiro","Salvador"], a:2},
+   {q:"¿Cuántas Copas Libertadores ha ganado el Flamengo?", o:["1","2","3","4"], a:2} ],
+ [ {q:"El F.C. Porto ganó la Champions League / Copa de Europa en los años:", o:["1987 y 2004","1990 y 1998","1980 y 1995","1975 y 1989"], a:0},
+   {q:"¿Qué entrenador llevó al Porto a ganar la Champions League de 2004?", o:["André Villas-Boas","José Mourinho","Fernando Santos","Vítor Pereira"], a:1} ],
+ [ {q:"¿Qué club escocés acumula más títulos de liga en su país?", o:["Celtic","Rangers","Aberdeen","Hearts"], a:1},
+   {q:"¿Cómo se llama el clásico escocés entre Rangers y Celtic?", o:["El Old Firm","El Derby del Norte","El Clásico Real","El Gran Derby"], a:0} ],
+ [ {q:"¿Qué club ganó la Champions League 2023-24, su decimoquinta corona europea?", o:["Manchester City","Real Madrid","Borussia Dortmund","Bayern Múnich"], a:1},
+   {q:"¿Qué club ganó la Champions League 2024-25, goleando 5-0 en la final?", o:["Real Madrid","Paris Saint-Germain","Inter de Milán","Arsenal"], a:1} ],
+ [ {q:"El Bayern Múnich juega de local en el estadio:", o:["Signal Iduna Park","Allianz Arena","Olympiastadion","Volksparkstadion"], a:1},
+   {q:"¿En qué ciudad alemana está el Allianz Arena, estadio del Bayern Múnich?", o:["Berlín","Hamburgo","Múnich","Fráncfort"], a:2} ],
+]},
+// NIVEL 9 — Historia avanzada de Mundiales
+{topic:"Historia avanzada de Mundiales", slots:[
+ [ {q:"¿En qué Mundial se usó por primera vez el VAR?", o:["Brasil 2014","Rusia 2018","Qatar 2022","Sudáfrica 2010"], a:1},
+   {q:"¿En qué Mundial se implementó por primera vez el fuera de juego semiautomático?", o:["Rusia 2018","Qatar 2022","Brasil 2014","Mundial 2026"], a:1} ],
+ [ {q:"¿Qué selección fue subcampeona del Mundial de Qatar 2022?", o:["Croacia","Marruecos","Francia","Países Bajos"], a:2},
+   {q:"¿Qué selección terminó cuarta en el Mundial de Qatar 2022?", o:["Marruecos","Croacia","Países Bajos","Inglaterra"], a:1} ],
+ [ {q:"¿Por qué el Mundial 2022 se jugó en noviembre-diciembre y no en junio-julio?", o:["Por elecciones en Qatar","Por el calor extremo del verano en Qatar","Por la pandemia","Por un conflicto regional"], a:1},
+   {q:"¿En qué mes se disputó la final del Mundial de Qatar 2022?", o:["Noviembre","Diciembre","Enero","Octubre"], a:1} ],
+ [ {q:"¿A qué selección eliminó Marruecos en cuartos de final del Mundial 2022?", o:["España","Portugal","Bélgica","Brasil"], a:1},
+   {q:"¿A qué selección eliminó Marruecos en octavos de final del Mundial 2022 (por penales)?", o:["España","Bélgica","Alemania","Croacia"], a:0} ],
+ [ {q:"¿Quién convirtió un hat-trick en la final del Mundial de Qatar 2022, algo que no se veía en una final desde 1966?", o:["Lionel Messi","Kylian Mbappé","Julián Álvarez","Ousmane Dembélé"], a:1},
+   {q:"¿Cuántos goles anotó Kylian Mbappé el día de la final del Mundial de Qatar 2022, sumando el partido y la tanda de penales?", o:["3","4","5","2"], a:1} ],
+ [ {q:"El histórico 'Maracanazo' (Uruguay campeón en la final de 1950) ocurrió en el estadio:", o:["Maracaná, Brasil","Centenario, Uruguay","Monumental, Argentina","Wembley, Inglaterra"], a:0},
+   {q:"¿A qué selección venció Uruguay en el 'Maracanazo' de 1950?", o:["Argentina","Brasil","Paraguay","España"], a:1} ],
+ [ {q:"¿En qué estadio se jugó la final del Mundial de Qatar 2022?", o:["Estadio Al Bayt","Estadio Lusail","Estadio 974","Estadio Ciudad de la Educación"], a:1},
+   {q:"¿En qué ciudad de Qatar está el Estadio Lusail, sede de la final de 2022?", o:["Doha","Al Wakrah","Lusail","Al Rayán"], a:2} ],
+ [ {q:"¿Qué selección asiática eliminó a Alemania y a España en la fase de grupos del Mundial 2022?", o:["Corea del Sur","Japón","Arabia Saudita","Irán"], a:1},
+   {q:"¿Qué selección eliminó a Japón en los octavos de final del Mundial 2022, por penales?", o:["Croacia","Marruecos","Brasil","Países Bajos"], a:0} ],
+ [ {q:"¿Quién recibió el Balón de Oro (mejor jugador) del Mundial de Qatar 2022?", o:["Kylian Mbappé","Lionel Messi","Luka Modrić","Julián Álvarez"], a:1},
+   {q:"¿Quién ganó el Balón de Bronce (tercer mejor jugador) del Mundial de Qatar 2022?", o:["Julián Álvarez","Luka Modrić","Olivier Giroud","Achraf Hakimi"], a:1} ],
+ [ {q:"¿Cuántas selecciones jugarán el Mundial 2026 por primera vez con el nuevo formato?", o:["32","40","48","64"], a:2},
+   {q:"¿Aproximadamente cuántos partidos se jugaron en el Mundial 2026, el primero con 48 selecciones?", o:["64","80","104","128"], a:2} ],
+]},
+// NIVEL 10 — Experto
+{topic:"Nivel experto", slots:[
+ [ {q:"¿Qué jugador tiene el récord histórico de más partidos disputados en Copas del Mundo?", o:["Miroslav Klose","Lionel Messi","Lothar Matthäus","Cristiano Ronaldo"], a:1},
+   {q:"¿Cuántos partidos de Copa del Mundo ha disputado Lionel Messi a lo largo de su carrera (a 2026)?", o:["22","24","26","28"], a:2} ],
+ [ {q:"¿Quién anotó el gol más rápido en la historia de los Mundiales, a los 11 segundos de iniciado el partido?", o:["Hakan Şükür","Bryan Robson","Klaas-Jan Huntelaar","Václav Mašek"], a:0},
+   {q:"¿En qué Mundial anotó Hakan Şükür el gol más rápido de la historia (11 segundos)?", o:["Francia 1998","Corea-Japón 2002","Alemania 2006","Sudáfrica 2010"], a:1} ],
+ [ {q:"¿Quién anotó 17 goles en una sola edición de la Champions League (récord, 2013-14)?", o:["Lionel Messi","Robert Lewandowski","Cristiano Ronaldo","Luis Suárez"], a:2},
+   {q:"¿Con qué club anotó Cristiano Ronaldo su récord de 17 goles en una sola Champions League (2013-14)?", o:["Manchester United","Real Madrid","Juventus","Sporting Lisboa"], a:1} ],
+ [ {q:"¿Qué entrenador tiene más títulos de Champions League en la historia?", o:["Pep Guardiola","Carlo Ancelotti","Zinedine Zidane","Alex Ferguson"], a:1},
+   {q:"¿Cuántas Champions League ha ganado Carlo Ancelotti como entrenador?", o:["3","4","5","6"], a:2} ],
+ [ {q:"¿Quién anotó el primer hat-trick en una final de Mundial (1966)?", o:["Bobby Charlton","Eusébio","Geoff Hurst","Franz Beckenbauer"], a:2},
+   {q:"¿A qué selección le anotó Geoff Hurst su histórico hat-trick en la final de 1966?", o:["Alemania Occidental","Portugal","Hungría","Unión Soviética"], a:0} ],
+ [ {q:"¿Quién recibió la primera tarjeta roja en la historia de los Mundiales, en 1974?", o:["Carlos Caszely","Antonio Rattín","Pelé","Bobby Moore"], a:0},
+   {q:"¿En qué Mundial recibió Carlos Caszely la primera tarjeta roja de la historia?", o:["México 1970","Alemania Occidental 1974","Argentina 1978","España 1982"], a:1} ],
+ [ {q:"Al brasileño Ronaldo Nazário se lo apodaba:", o:["El Fenómeno","El Pibe","El Divino","El Mago"], a:0},
+   {q:"¿Cuántos goles anotó Ronaldo Nazário a lo largo de sus Mundiales disputados?", o:["12","13","15","17"], a:2} ],
+ [ {q:"¿Qué club acumula más títulos del Mundial de Clubes de la FIFA?", o:["Barcelona","Real Madrid","Corinthians","Bayern Múnich"], a:1},
+   {q:"Sumando la vieja Copa Intercontinental, ¿cuántos títulos mundiales de clubes reconoce la FIFA que tiene el Real Madrid?", o:["6","7","8","9"], a:2} ],
+ [ {q:"¿Qué selección fue la primera en ganar el Mundial dos veces consecutivas (1934 y 1938)?", o:["Uruguay","Brasil","Italia","Alemania"], a:2},
+   {q:"¿Qué entrenador llevó a Italia a ser bicampeona del mundo en 1934 y 1938?", o:["Vittorio Pozzo","Enzo Bearzot","Cesare Maldini","Arrigo Sacchi"], a:0} ],
+ [ {q:"¿Quién es el máximo goleador histórico de la Selección Argentina?", o:["Gabriel Batistuta","Diego Maradona","Lionel Messi","Hernán Crespo"], a:2},
+   {q:"¿A quién superó Lionel Messi como máximo goleador histórico de la Selección Argentina?", o:["Diego Maradona","Gabriel Batistuta","Hernán Crespo","Mario Kempes"], a:1} ],
+]},
+];
+
+/* ============ ESTADO DEL JUEGO ============ */
+const TIME_LIMIT = 10;
+let state = {};
+let timerInterval = null;
+
+function pointsForLevel(levelIdx){ return (levelIdx+1) * 100; }
+
+function resetState(){
+  state = {
+    level: 0,
+    qIndex: 0,
+    score: 0,
+    correctInLevel: 0,
+    timeLeft: TIME_LIMIT,
+  };
+}
+
+/* Elige una variante para una posición evitando repetir la última mostrada
+   (se recuerda por navegador vía localStorage, incluso entre partidas). */
+function getSlotQuestion(levelIdx, slotIdx){
+  const variants = QUESTION_BANK[levelIdx].slots[slotIdx];
+  const key = 'ft_variant_' + levelIdx + '_' + slotIdx;
+  let lastIdx = parseInt(localStorage.getItem(key), 10);
+  if(isNaN(lastIdx)) lastIdx = -1;
+  let choices = variants.map((_, i) => i).filter(i => i !== lastIdx);
+  if(choices.length === 0) choices = variants.map((_, i) => i);
+  const pick = choices[Math.floor(Math.random() * choices.length)];
+  localStorage.setItem(key, pick);
+  return variants[pick];
+}
+
+function currentQuestion(){
+  if(!state.qCache) state.qCache = {};
+  const key = state.level + '_' + state.qIndex;
+  if(!state.qCache[key]) state.qCache[key] = getSlotQuestion(state.level, state.qIndex);
+  return state.qCache[key];
+}
+
+function startGame(){
+  const nameInput = document.getElementById('name-input');
+  if(!state.playerName){
+    const typed = (nameInput.value || '').trim();
+    state.playerName = typed.length ? typed.slice(0,18) : 'Jugador';
+  }
+  const savedName = state.playerName;
+  resetState();
+  state.playerName = savedName;
+
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('game-screen').classList.remove('hidden');
+  document.getElementById('player-name-tag').textContent = state.playerName;
+  renderLights();
+  loadQuestion();
+}
+
+function renderLights(){
+  const lights = document.getElementById('lights');
+  lights.innerHTML = '';
+  for(let i=0;i<10;i++){
+    const d = document.createElement('div');
+    d.className = 'light';
+    if(i < state.qIndex) d.classList.add('correct');
+    if(i === state.qIndex) d.classList.add('current');
+    lights.appendChild(d);
+  }
+}
+
+function loadQuestion(){
+  clearInterval(timerInterval);
+  state.timeLeft = TIME_LIMIT;
+  const level = QUESTION_BANK[state.level];
+  const q = currentQuestion();
+
+  document.getElementById('level-num').textContent = state.level+1;
+  document.getElementById('score-value').textContent = state.score.toLocaleString('es-AR');
+  document.getElementById('topic-label').textContent = level.topic;
+  document.getElementById('q-counter').textContent = (state.qIndex+1)+'/10';
+  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  renderLights();
+
+  const optionsDiv = document.getElementById('options');
+  optionsDiv.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.o.forEach((opt, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = '<span class="opt-letter">'+letters[idx]+'</span>'+opt;
+    btn.onclick = ()=>{ sfxClick(); answer(idx); };
+    optionsDiv.appendChild(btn);
+  });
+
+  setupTimerRing();
+  startTimer();
+}
+
+function setupTimerRing(){
+  const circle = document.getElementById('timer-fg');
+  const r = 38;
+  const circumference = 2*Math.PI*r;
+  circle.style.strokeDasharray = circumference;
+  circle.style.strokeDashoffset = 0;
+  circle.classList.remove('danger');
+  document.getElementById('timer-num').textContent = TIME_LIMIT;
+}
+
+function startTimer(){
+  const circle = document.getElementById('timer-fg');
+  const r = 38;
+  const circumference = 2*Math.PI*r;
+  const numEl = document.getElementById('timer-num');
+
+  timerInterval = setInterval(()=>{
+    state.timeLeft -= 1;
+    numEl.textContent = state.timeLeft;
+    const fraction = state.timeLeft / TIME_LIMIT;
+    circle.style.strokeDashoffset = circumference * (1-fraction);
+    if(state.timeLeft <= 3){ circle.classList.add('danger'); }
+    if(state.timeLeft <= 0){
+      clearInterval(timerInterval);
+      answer(-1);
+    }
+  }, 1000);
+}
+
+function answer(chosenIdx){
+  clearInterval(timerInterval);
+  const q = currentQuestion();
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(b=>b.disabled = true);
+
+  const isCorrect = chosenIdx === q.a;
+  const feedback = document.getElementById('feedback');
+
+  if(chosenIdx === -1){
+    sfxWrong();
+    feedback.textContent = '⏱ Se acabó el tiempo — respuesta correcta: '+q.o[q.a];
+    feedback.className = 'feedback time';
+  } else if(isCorrect){
+    sfxCorrect();
+    opts[chosenIdx].classList.add('correct');
+    feedback.textContent = '¡Correcto!';
+    feedback.className = 'feedback ok';
+  } else {
+    sfxWrong();
+    opts[chosenIdx].classList.add('wrong');
+    opts[q.a].classList.add('correct');
+    feedback.textContent = 'Incorrecto — la respuesta correcta era: '+q.o[q.a];
+    feedback.className = 'feedback bad';
+  }
+
+  if(isCorrect){
+    const pts = pointsForLevel(state.level);
+    state.score += pts;
+    state.correctInLevel += 1;
+    document.getElementById('score-value').textContent = state.score.toLocaleString('es-AR');
+
+    setTimeout(()=>{
+      if(state.qIndex === 9){
+        if(state.level === 9){
+          endGame(true);
+        } else {
+          const completedLevel = state.level + 1;
+          state.level += 1;
+          state.qIndex = 0;
+          state.correctInLevel = 0;
+          state.qCache = {};
+          celebrateLevelUp(completedLevel, state.level+1, loadQuestion);
+        }
+      } else {
+        state.qIndex += 1;
+        loadQuestion();
+      }
+    }, 1400);
+  } else {
+    setTimeout(()=> endGame(false), 1800);
+  }
+}
+
+/* ============ FESTEJO AL SUBIR DE NIVEL ============ */
+function celebrateLevelUp(completedLevel, nextLevel, callback){
+  sfxLevelUp();
+  document.getElementById('cel-level-num').textContent = completedLevel;
+  document.getElementById('cel-next-level').textContent = nextLevel;
+
+  const wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = ['#c9a227','#e6c14d','#3fa34d','#e8e6de','#c1272d'];
+  for(let i=0;i<40;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (1.6 + Math.random()*1.4) + 's';
+    c.style.animationDelay = (Math.random()*0.4) + 's';
+    c.style.transform = 'rotate(' + Math.floor(Math.random()*360) + 'deg)';
+    wrap.appendChild(c);
+  }
+
+  const overlay = document.getElementById('celebration');
+  overlay.classList.remove('hidden');
+  setTimeout(()=>{
+    overlay.classList.add('hidden');
+    wrap.innerHTML = '';
+    callback();
+  }, 2300);
+}
+
+/* ============ TABLA HISTÓRICA (leaderboard) ============ */
+async function submitScore(name, score){
+  const entry = { name: name, score: score, date: new Date().toISOString() };
+  if(usingSharedBoard){
+    try{
+      await fetch(FIREBASE_DB_URL + '/leaderboard.json', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(entry)
+      });
+      return;
+    }catch(e){ /* si falla, guardamos localmente como respaldo */ }
+  }
+  const board = JSON.parse(localStorage.getItem('ft_leaderboard_local') || '[]');
+  board.push(entry);
+  localStorage.setItem('ft_leaderboard_local', JSON.stringify(board));
+}
+
+async function fetchLeaderboard(){
+  if(usingSharedBoard){
+    try{
+      const res = await fetch(FIREBASE_DB_URL + '/leaderboard.json');
+      const data = await res.json();
+      if(!data) return [];
+      return Object.values(data);
+    }catch(e){ /* si falla, mostramos lo local como respaldo */ }
+  }
+  return JSON.parse(localStorage.getItem('ft_leaderboard_local') || '[]');
+}
+
+function renderBoardTable(tableEl, noteEl, board, highlightName, highlightScore){
+  const sorted = board.slice().sort((a,b)=> b.score - a.score).slice(0, 15);
+  let html = '<tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
+  if(sorted.length === 0){
+    html += '<tr><td colspan="3">Todavía no hay partidas registradas.</td></tr>';
+  } else {
+    sorted.forEach((e, i)=>{
+      const isYou = highlightName && e.name === highlightName && e.score === highlightScore;
+      html += '<tr class="'+(isYou?'you':'')+'"><td>'+(i+1)+'</td><td>'+escapeHtml(e.name)+'</td><td>'+e.score.toLocaleString('es-AR')+'</td></tr>';
+    });
+  }
+  tableEl.innerHTML = html;
+  tableEl.classList.remove('hidden');
+  if(noteEl){
+    noteEl.textContent = usingSharedBoard
+      ? 'Tabla compartida entre todos los jugadores.'
+      : 'Tabla guardada en este navegador (configurá Firebase para compartirla con todos).';
+  }
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function showLeaderboardStandalone(){
+  const board = await fetchLeaderboard();
+  document.getElementById('board-title-start').classList.remove('hidden');
+  renderBoardTable(
+    document.getElementById('board-table-start'),
+    document.getElementById('board-note-start'),
+    board
+  );
+}
+
+async function endGame(victory){
+  document.getElementById('game-screen').classList.add('hidden');
+  document.getElementById('end-screen').classList.remove('hidden');
+  document.getElementById('final-score').textContent = state.score.toLocaleString('es-AR');
+
+  const title = document.getElementById('end-title');
+  const msg = document.getElementById('end-message');
+  if(victory){
+    title.innerHTML = '¡Sos <span>Campeón del Mundo</span>!';
+    msg.textContent = state.playerName + ', completaste los 10 niveles sin fallar ni una sola pregunta.';
+  } else {
+    title.innerHTML = 'Fin del <span>partido</span>';
+    msg.textContent = state.playerName + ', llegaste al nivel '+(state.level+1)+' de 10. ¡Volvé a intentarlo para superarte!';
+  }
+
+  await submitScore(state.playerName, state.score);
+  const board = await fetchLeaderboard();
+  renderBoardTable(
+    document.getElementById('board-table-end'),
+    document.getElementById('board-note-end'),
+    board,
+    state.playerName,
+    state.score
+  );
+}
+</script>
+</body>
+</html>
